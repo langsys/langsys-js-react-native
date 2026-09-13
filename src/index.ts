@@ -37,6 +37,7 @@ import {
     type TArgs,
     type TFunction,
     type TranslationParams,
+    type WriteGrant,
     type iCategories,
     type iLangsysInitConfig as iVanillaInitConfig,
     type iLangsysResponse,
@@ -49,11 +50,30 @@ import {
 // subscription. `tSignal` is exposed under the friendlier name `t`.
 export { currentlyLoadedLocale, createSignal, sTranslations, tSignal as t } from 'langsys-js-typescript';
 
+// Server-computed session state, by reference and unadapted. The web React
+// binding withholds the raw `writeEnabled` because a server render would read
+// it before hydration; React Native has no server render and no hydration pass,
+// so there is nothing to adapt and BIND-6 says re-export. Surface these, never
+// branch on them (BIND-2). Pinned by `src/surface.test.ts`.
+export { autoDiscovery, writeEnabled } from 'langsys-js-typescript';
+
+// Write grant — supply a short-lived token after `init()` (e.g. once the user
+// logs in). Standalone alias for `LangsysApp.setWriteGrant`; both re-authorize.
+export { setWriteGrant } from 'langsys-js-typescript';
+
 // Storage injection (see module docs above) + locale canonicalization + API client.
 export { canonicalizeLocale, LangsysAppAPI, setPersistStorage } from 'langsys-js-typescript';
 
 // Hooks — the React-idiomatic reactive layer (same surface as langsys-js-react).
-export { createLocaleStore, useCurrentLocale, useLocaleStore, useSignal, useT, useTranslations } from './hooks.js';
+export {
+    createLocaleStore,
+    useCurrentLocale,
+    useLocaleStore,
+    useSignal,
+    useT,
+    useTranslations,
+    useWriteEnabled,
+} from './hooks.js';
 
 // Components
 export { DontTranslate, type DontTranslateProps } from './components/DontTranslate.js';
@@ -68,6 +88,7 @@ export type {
     TArgs,
     TFunction,
     TranslationParams,
+    WriteGrant,
     iCategories,
     iLangsysResponse,
     iLocaleData,
@@ -85,80 +106,21 @@ export interface iLangsysInitConfig extends Omit<iVanillaInitConfig, 'UserLocale
 }
 
 /**
- * RN SDK entry point. Delegates everything to the underlying
- * `langsys-js-typescript` singleton — same delegating surface as the other
- * bindings.
+ * RN SDK entry point — the core singleton itself, re-exported **by reference**,
+ * with `init` narrowed to the RN-flavoured config.
+ *
+ * Deliberately not a wrapper class. The previous one listed each core method
+ * and delegated it, and a list like that goes stale silently: `seedCatalog` and
+ * `setWriteGrant` were never added to it, so neither was reachable here. A
+ * by-reference export cannot fall behind — a public member added to the core
+ * is reachable the moment it exists — and it preserves identity, so `this`
+ * binds and destructuring works. Sound only because the class overrode no
+ * behaviour: every member was a straight delegation.
+ *
+ * `Omit<typeof _LangsysApp, 'init'>` is keyof-mapped, so it does not widen the
+ * core's `private` members. Pinned by `src/surface.test.ts`.
  */
-class LangsysAppReactNative {
+export const LangsysApp: Omit<typeof _LangsysApp, 'init'> & {
     /** Initialize Langsys. Pass a `Signal<string>` (from `createLocaleStore`) as `UserLocaleStore`. */
-    public init(config: iLangsysInitConfig): Promise<iLangsysResponse> {
-        return _LangsysApp.init(config);
-    }
-
-    public get Translations() {
-        return _LangsysApp.Translations;
-    }
-
-    public get translationsLoadingPromise() {
-        return _LangsysApp.translationsLoadingPromise;
-    }
-
-    /** Current translation function. Reads fresh state on every call (not reactive on its own — use `useT()` in components). */
-    public get t(): TFunction {
-        return _LangsysApp.t;
-    }
-
-    public get debug() {
-        return _LangsysApp.debug;
-    }
-
-    public refresh() {
-        return _LangsysApp.refresh();
-    }
-
-    public getCountries(inLocale?: string) {
-        return _LangsysApp.getCountries(inLocale);
-    }
-    public getCountryName(forCountryCode: string, inLocale?: string) {
-        return _LangsysApp.getCountryName(forCountryCode, inLocale);
-    }
-    public getCurrencies(inLocale?: string) {
-        return _LangsysApp.getCurrencies(inLocale);
-    }
-    public getCurrencyName(forCurrencyCode: string, inLocale?: string) {
-        return _LangsysApp.getCurrencyName(forCurrencyCode, inLocale);
-    }
-    public getDialCodes(inLocale?: string) {
-        return _LangsysApp.getDialCodes(inLocale);
-    }
-
-    public getLocales(inLocale?: string) {
-        return _LangsysApp.getLocales(inLocale);
-    }
-    public getLocalesFlat(inLocale?: string) {
-        return _LangsysApp.getLocalesFlat(inLocale);
-    }
-    public getLocalesData(inLocale?: string, forceRefresh?: boolean) {
-        return _LangsysApp.getLocalesData(inLocale, forceRefresh);
-    }
-    public getLocalesFormat(format: '' | 'flat' | 'data' = '', inLocale?: string) {
-        return _LangsysApp.getLocalesFormat(format, inLocale);
-    }
-    public getLocaleName(forLocale: string, shortName?: boolean, inLocale?: string) {
-        return _LangsysApp.getLocaleName(forLocale, shortName, inLocale);
-    }
-    public getLocaleNameWithLookup(forLocale: string, shortName?: boolean, inLocale?: string) {
-        return _LangsysApp.getLocaleNameWithLookup(forLocale, shortName, inLocale);
-    }
-
-    /** @deprecated use `getLocaleNameWithLookup` or `getLocaleName` */
-    public getLanguageName(forLocale: string, shortName?: boolean, inLocale?: string) {
-        return _LangsysApp.getLanguageName(forLocale, shortName, inLocale);
-    }
-
-    public detectPreferredLocale(acceptLanguageHeader?: string | null, supportedLocales?: string[]) {
-        return _LangsysApp.detectPreferredLocale(acceptLanguageHeader, supportedLocales);
-    }
-}
-
-export const LangsysApp = new LangsysAppReactNative();
+    init(config: iLangsysInitConfig): Promise<iLangsysResponse>;
+} = _LangsysApp;

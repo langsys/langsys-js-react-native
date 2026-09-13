@@ -6,8 +6,10 @@ lookup key **and** the base-language default: no keys file, no extraction step.
 
 > **Status: experimental, hooks-first.** The full `t()` pipeline works on
 > Hermes today; the DOM-oriented components are intentionally absent (see
-> Roadmap). Requires `langsys-js-typescript` ≥ 0.4.2 (the release that added
-> `setPersistStorage` and made the token-flush timer demand-driven).
+> Roadmap). Requires the `langsys-js-typescript` release that carries the
+> write-gating surface — `setPersistStorage`, `writeEnabled`, `setWriteGrant`,
+> `seedCatalog`. No published version carries it yet (0.6.5 does not), and this
+> package's dependency range moves to that release when it ships.
 
 ## What works today
 
@@ -38,7 +40,8 @@ export default function App() {
 ```
 
 ICU plurals, locale-aware number/date params, category disambiguation, and
-token discovery (write keys) all behave exactly like the web SDKs.
+registration from write-enabled sessions behave like the web SDKs. Two things
+differ on React Native — see [Known limitations](#known-limitations).
 
 ## Storage: make the catalog survive cold starts
 
@@ -60,6 +63,64 @@ setPersistStorage({
 
 Call it before (or after — it re-hydrates) `init`; the last-loaded catalog then
 paints instantly on the next launch while the fresh one fetches.
+
+## Write capability, grants and seeding
+
+Whether a session may register content is decided by the server, per session —
+the same key can be write-enabled from one network and read-only from another.
+Read it with `useWriteEnabled()`: `undefined` until authorization lands, then
+`false` or `true`. Render for all three, and don't default `undefined` to
+`false`.
+
+```tsx
+import { useWriteEnabled } from 'langsys-js-react-native';
+
+const writeEnabled = useWriteEnabled();
+```
+
+The raw `writeEnabled` and `autoDiscovery` signals are re-exported unchanged for
+use outside components. `LangsysApp` is the base SDK's singleton itself, so
+every core method is on it, including:
+
+- `setWriteGrant(grant)` (also exported standalone) — supply a short-lived write
+  grant after `init()`, e.g. once the user logs in. Pass a provider function so
+  the token is fetched fresh per request.
+- `seedCatalog(catalog, locale)` — put a catalog in place synchronously, with no
+  network, e.g. one bundled with the app for first paint.
+
+## Configuration: pointing at another API
+
+The SDK talks to `https://api.langsys.dev/api` by default. To run against a local
+instance, a staging host or a test double, pass `apiUrl` to `init`:
+
+```ts
+LangsysApp.init({
+    projectid: '...',
+    key: '...',
+    UserLocaleStore: store,
+    apiUrl: 'http://10.0.2.2:8000/api', // the host machine, from an Android emulator
+});
+```
+
+Prefer `apiUrl` over `LangsysAppAPI.setBaseUrl()`. `setBaseUrl` must run
+**before** `init()`: called after it, the SDK has already authorized against the
+default host and stays inert for the life of the app, with nothing thrown.
+`apiUrl` is applied inside `init()` before authorization, so the ordering cannot
+be got wrong. Check what `init()` returns — a failed authorization is reported
+there and nowhere else.
+
+## Known limitations
+
+- **Registrations still queued when the app is killed are lost.** On the web the
+  base SDK flushes its queue when the page is torn down. React Native has no such
+  event, and the base SDK does not yet expose a flush this package could run when
+  the app leaves the foreground. Most misses are sent within a ~400ms debounce, so
+  the exposure is whatever is queued at that moment — largest while a failing
+  server has sends backed off.
+- **No discovery reporting.** On the web, a read-only session reports the page's
+  URL so Langsys can visit it and register what it finds. An app has no URL, so a
+  read-only key on React Native registers nothing and reports nothing. Use a
+  write-enabled session (or a write grant) to register content from the app.
 
 ## Roadmap
 

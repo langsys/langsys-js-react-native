@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from 'react';
-import { createSignal, currentlyLoadedLocale, sTranslations, tSignal } from 'langsys-js-typescript';
+import { createSignal, currentlyLoadedLocale, sTranslations, tSignal, writeEnabled } from 'langsys-js-typescript';
 import type { Signal, TFunction, iCategories } from 'langsys-js-typescript';
 
 /**
@@ -58,4 +58,20 @@ export function useLocaleStore(initial = 'en-US'): [string, (locale: string) => 
     const [store] = useState(() => createLocaleStore(initial));
     const locale = useSignal(store);
     return [locale, store.set, store];
+}
+
+/**
+ * Whether this session may register content, exactly as the server decided it.
+ *
+ * Tri-state, and the states are distinct: `undefined` (authorization has not
+ * landed), `false` (read-only) and `true`. Returned undefaulted — collapsing
+ * `undefined` to `false` would be this binding deciding something only the
+ * server is entitled to (BIND-2).
+ *
+ * Plain `useSignal`, unlike the web React binding, which pins the server
+ * snapshot to `undefined` so a hydration render cannot disagree with server
+ * HTML. React Native never renders on a server, so there is no snapshot to pin.
+ */
+export function useWriteEnabled(): boolean | undefined {
+    return useSignal(writeEnabled);
 }
