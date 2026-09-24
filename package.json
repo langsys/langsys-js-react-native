@@ -31,7 +31,10 @@
         "CHANGELOG.md",
         "LICENSE"
     ],
-    "sideEffects": false,
+    "sideEffects": [
+        "./dist/index.js",
+        "./dist/index.mjs"
+    ],
     "scripts": {
         "build": "tsup",
         "build:watch": "tsup --watch",

@@ -8,7 +8,7 @@ lookup key **and** the base-language default: no keys file, no extraction step.
 > Hermes today; the DOM-oriented components are intentionally absent (see
 > Roadmap). Requires the `langsys-js-typescript` release that carries the
 > write-gating surface — `setPersistStorage`, `writeEnabled`, `setWriteGrant`,
-> `seedCatalog`. No published version carries it yet (0.6.5 does not), and this
+> `seedCatalog`, `setTeardownSignal`. No published version carries it yet (0.6.5 does not), and this
 > package's dependency range moves to that release when it ships.
 
 ## What works today
@@ -42,6 +42,11 @@ export default function App() {
 ICU plurals, locale-aware number/date params, category disambiguation, and
 registration from write-enabled sessions behave like the web SDKs. Two things
 differ on React Native — see [Known limitations](#known-limitations).
+
+Content waiting to be registered is sent when the app leaves the foreground —
+`AppState` leaving `active` — so it isn't stranded when the OS suspends or
+kills the app. The package wires this up itself when it loads; there is
+nothing to call.
 
 ## Storage: make the catalog survive cold starts
 
@@ -88,6 +93,28 @@ every core method is on it, including:
 - `seedCatalog(catalog, locale)` — put a catalog in place synchronously, with no
   network, e.g. one bundled with the app for first paint.
 
+## Server messages
+
+Validation errors and other messages your API returns can be translated like any
+other phrase. Find the entries in a response with `resolveServerMessages`, then
+render each with `useServerMessage`: it shows the translation of the entry's
+template when the catalog has one, the entry's own `message` otherwise, and
+re-renders when the catalog or locale changes.
+
+```tsx
+import { Text } from 'react-native';
+import { resolveServerMessages, useServerMessage, type ServerMessage } from 'langsys-js-react-native';
+
+function FieldError({ entry }: { entry: ServerMessage }) {
+    return <Text>{useServerMessage(entry)}</Text>;
+}
+
+const entries = resolveServerMessages(await response.json());
+```
+
+Entries are looked up under the `Errors` category unless you set
+`messagesCategory` in `init`.
+
 ## Configuration: pointing at another API
 
 The SDK talks to `https://api.langsys.dev/api` by default. To run against a local
@@ -111,12 +138,9 @@ there and nowhere else.
 
 ## Known limitations
 
-- **Registrations still queued when the app is killed are lost.** On the web the
-  base SDK flushes its queue when the page is torn down. React Native has no such
-  event, and the base SDK does not yet expose a flush this package could run when
-  the app leaves the foreground. Most misses are sent within a ~400ms debounce, so
-  the exposure is whatever is queued at that moment — largest while a failing
-  server has sends backed off.
+- **The departure send is dispatched, not guaranteed.** React Native's `fetch`
+  has no `keepalive`, so whether that last request completes depends on how
+  long the OS lets the app run after leaving the foreground.
 - **No discovery reporting.** On the web, a read-only session reports the page's
   URL so Langsys can visit it and register what it finds. An app has no URL, so a
   read-only key on React Native registers nothing and reports nothing. Use a

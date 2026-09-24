@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { createSignal, currentlyLoadedLocale, sTranslations, tSignal, writeEnabled } from 'langsys-js-typescript';
-import type { Signal, TFunction, iCategories } from 'langsys-js-typescript';
+import { renderServerMessage } from 'langsys-js-typescript';
+import type { ServerMessage, Signal, TFunction, iCategories } from 'langsys-js-typescript';
 
 /**
  * Subscribe the component to a base-SDK `Signal<T>`. Identical implementation
@@ -74,4 +75,22 @@ export function useLocaleStore(initial = 'en-US'): [string, (locale: string) => 
  */
 export function useWriteEnabled(): boolean | undefined {
     return useSignal(writeEnabled);
+}
+
+/**
+ * A server message entry (MSG-5), rendered and kept current: its template
+ * through `t()` when the catalog holds a translation for it, the entry's own
+ * `message` otherwise. The choice is the core's `renderServerMessage`; this
+ * hook only subscribes the component, so it re-renders when the catalog or the
+ * locale changes.
+ *
+ *   const [entry] = resolveServerMessages(await response.json());
+ *   const text = useServerMessage(entry);
+ *
+ * `category` defaults to the one configured with `messagesCategory` in `init`
+ * (`Errors` unless set).
+ */
+export function useServerMessage(entry: ServerMessage, category?: string): string {
+    useT();
+    return renderServerMessage(entry, category);
 }

@@ -27,6 +27,9 @@ describe('upstream precondition — the core build under test', () => {
         expect(typeof core.setPersistStorage).toBe('function');
         expect(typeof core.setWriteGrant).toBe('function');
         expect(typeof core.LangsysApp.seedCatalog).toBe('function');
+        expect(typeof core.setTeardownSignal).toBe('function');
+        expect(typeof core.renderServerMessage).toBe('function');
+        expect(typeof core.resolveServerMessages).toBe('function');
         for (const signal of [core.writeEnabled, core.autoDiscovery]) {
             expect(typeof signal.subscribe).toBe('function');
             expect(typeof signal.get).toBe('function');

@@ -105,6 +105,13 @@ describe('BIND-6 — core values re-exported by reference', () => {
         ['setPersistStorage', core.setPersistStorage],
         ['canonicalizeLocale', core.canonicalizeLocale],
         ['LangsysAppAPI', core.LangsysAppAPI],
+        ['renderServerMessage', core.renderServerMessage],
+        ['resolveServerMessages', core.resolveServerMessages],
+        ['toServerMessage', core.toServerMessage],
+        ['fillTemplate', core.fillTemplate],
+        ['templateMarkers', core.templateMarkers],
+        ['SERVER_MESSAGE_CODES', core.SERVER_MESSAGE_CODES],
+        ['DEFAULT_SERVER_MESSAGE_CATEGORY', core.DEFAULT_SERVER_MESSAGE_CATEGORY],
     ];
 
     for (const [name, value] of byReference) {
@@ -114,4 +121,17 @@ describe('BIND-6 — core values re-exported by reference', () => {
             expect((rn as unknown as Record<string, unknown>)[name]).toBe(value);
         });
     }
+});
+
+describe('BIND-6 — setTeardownSignal is deliberately not re-exported', () => {
+    // It is the one core value this binding adapts: the binding installs its own
+    // AppState signal at load (`./teardown.ts`). Re-exporting the injector beside
+    // that would offer a supported-looking way to replace or null it.
+    it('positive control: the core exports it', () => {
+        expect(typeof core.setTeardownSignal).toBe('function');
+    });
+
+    it('this package does not', () => {
+        expect(rn).not.toHaveProperty('setTeardownSignal');
+    });
 });

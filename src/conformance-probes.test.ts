@@ -64,7 +64,12 @@ const sources: Source[] = walk(SRC_DIR).map((path) => ({
 
 describe('probe controls', () => {
     it('reads the binding source — the file list is pinned', () => {
-        expect(sources.map((s) => s.file).sort()).toEqual(['components/DontTranslate.ts', 'hooks.ts', 'index.ts']);
+        expect(sources.map((s) => s.file).sort()).toEqual([
+            'components/DontTranslate.ts',
+            'hooks.ts',
+            'index.ts',
+            'teardown.ts',
+        ]);
     });
 
     it('stripping keeps code: constructs known to be present are found', () => {
@@ -105,13 +110,14 @@ const PROBES: Probe[] = [
         firesOn: "const label = useMemo(() => t('Save', 'UI'), []);",
     },
     {
-        rule: 'GATE-1..8',
+        rule: 'GATE-1..9',
         behaviour: 'capability decisions',
-        pattern: /key_type|keyType|write_enabled|writeEnabled\.(get|set)\(|setWriteEnabled/,
+        pattern:
+            /key_type|keyType|write_enabled|writeEnabled\.(get|set)\(|setWriteEnabled|discovery_base_locale_only|discoveryBaseLocaleOnly/,
         firesOn: "if (auth.key_type === 'write') queue.push(phrase);",
     },
     {
-        rule: 'REG-1..12',
+        rule: 'REG-1..13',
         behaviour: 'registration: queueing, batching, sending or backoff',
         pattern:
             /translatable-items|createTranslatableItems|missingTokens|keepalive|sendBeacon|batch_limit|retryNotBefore/,
@@ -124,7 +130,7 @@ const PROBES: Probe[] = [
         firesOn: 'if (!Object.prototype.hasOwnProperty.call(bucket, phrase)) record(phrase);',
     },
     {
-        rule: 'CACHE-1',
+        rule: 'CACHE-1..2',
         behaviour: 'cache keys or storage access',
         pattern: /localStorage|sessionStorage|\.getItem\(|\.setItem\(|['"`]langsys:/,
         firesOn: 'storage.setItem(`langsys:${locale}`, json);',
@@ -136,7 +142,7 @@ const PROBES: Probe[] = [
         firesOn: 'const id = md5(JSON.stringify([category, tokens]));',
     },
     {
-        rule: 'ICU-1..5',
+        rule: 'ICU-1..6',
         behaviour: 'interpolation or ICU recovery',
         pattern: /\binterpolate\b|\bisICU\b|IntlMessageFormat|intl-messageformat|\bIntl\./,
         firesOn: 'return new IntlMessageFormat(template, locale).format(params);',
@@ -158,6 +164,24 @@ const PROBES: Probe[] = [
         behaviour: 'wire handling: auth header, API base, status parsing or identifier casing',
         pattern: /x-authorization|apiUrl|setBaseUrl|\.status\s*===?\s*204|\.json\(\)|toLowerCase\(/i,
         firesOn: 'const res = await fetch(`${apiUrl}/translations`); if (res.status === 204) return;',
+    },
+    {
+        rule: 'MSG-1..6',
+        behaviour: 'server-message resolution or rendering',
+        pattern: /\.template\b|\.message\b|\.params\b|['"]Errors['"]/,
+        firesOn: "t(entry.template, 'Errors', entry.params ?? {});",
+    },
+    {
+        rule: 'MIG-1..8',
+        behaviour: 'legacy-key lookup or conversion',
+        pattern: /legacy|migrat|\{\{/i,
+        firesOn: 'const phrase = legacyFile[key] ?? key;',
+    },
+    {
+        rule: 'SNAP-2..3',
+        behaviour: 'snapshot loading',
+        pattern: /snapshot|preload/i,
+        firesOn: 'LangsysApp.seedCatalog(loadSnapshot(bundle), locale);',
     },
 ];
 
@@ -230,7 +254,9 @@ describe('CONF-1 — no conformance claim rests on what the SDK sent', () => {
         expect(tests.map((t) => t.file).sort()).toEqual([
             'hooks.test.ts',
             'rn-teardown.test.ts',
+            'server-messages.test.ts',
             'surface.test.ts',
+            'teardown.test.ts',
             'upstream-precondition.test.ts',
         ]);
     });
