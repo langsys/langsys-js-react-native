@@ -253,6 +253,7 @@ describe('CONF-1 — no conformance claim rests on what the SDK sent', () => {
     it('reads the test files — the list is pinned', () => {
         expect(tests.map((t) => t.file).sort()).toEqual([
             'hooks.test.ts',
+            'legacy-keys.test.ts',
             'rn-teardown.test.ts',
             'server-messages.test.ts',
             'surface.test.ts',

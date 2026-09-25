@@ -115,6 +115,28 @@ const entries = resolveServerMessages(await response.json());
 Entries are looked up under the `Errors` category unless you set
 `messagesCategory` in `init`.
 
+## Migrating from i18n keys
+
+If your app already translates with keys, pass its source-language file to
+`init` as `legacyKeys`. `t('checkout.submit')` then resolves the key to its
+value and translates that value, so keyed and plain-text calls work side by
+side while you migrate. A JSON file bundled with the app works as is:
+
+```ts
+import en from './locales/en.json';
+
+LangsysApp.init({
+    projectid: '...',
+    key: '...',
+    UserLocaleStore: store,
+    legacyKeys: [{ name: 'en.json', data: en }],
+});
+```
+
+A key's leading namespace becomes its category (`checkout.submit` → `checkout`)
+unless the call passes one. Langsys only ever sees the source values, never the
+keys. `format` may be `plain` (the default), `i18next` or `vue-i18n`.
+
 ## Configuration: pointing at another API
 
 The SDK talks to `https://api.langsys.dev/api` by default. To run against a local

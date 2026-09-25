@@ -2,21 +2,21 @@
 
 | | |
 |---|---|
-| **Spec revision read** | langsys2 43d090c3…, docs/sdk-spec.mdx blob 286dcfe429c8a0cdac60cdd6ab062bdf671ad078 |
+| **Spec revision read** | langsys2 9b23f3d8…, docs/sdk-spec.mdx blob 33bbc4095ef2d13a55926b71045a7094f6b9706a |
 | **Profiles** | browser, binding, all — derived: binding over langsys-js-typescript |
-| **specVersion** | 8.2.9. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree 43d090c3 docs/sdk-spec.mdx`, and the 113 rule ids below are enumerated from it |
+| **specVersion** | 8.2.14. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree 9b23f3d8 docs/sdk-spec.mdx`, and the 113 rule ids below are enumerated from it |
 | **SDK** | `langsys-js-react-native` 0.1.0 — React Native binding, hooks-first, experimental |
 | **SDK revision** | `feature/838_write_key_gating` |
-| **Core consumed** | `langsys-js-typescript` `86871033` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `9e84d47177b23b0e49243632986e4d91117897f3` at that commit, graded against the same spec blob as this file |
-| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `86871033`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
+| **Core consumed** | `langsys-js-typescript` `2d57cdd9` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `cfc20369c0801af609f79c218a4f51567bb7a58d` at that commit, graded against the same spec blob as this file |
+| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `2d57cdd9`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
 | **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `c8125549cfee0f5286f79a8cbc194cd30ccd446e`, which the suite recomputes and pins |
-| **Suite** | 97 tests in 7 files, `npm test`, all passing. Counted from vitest's report at this tip |
+| **Suite** | 100 tests in 8 files, `npm test`, all passing. Counted from vitest's report at this tip |
 | **Tally** | implemented 11 · delegated 59 · n/a (architecture) 33 · n/a (profile: server) 10 — 113 rows, each id graded once |
 
 **What surfaced while writing this.**
 
-1. **Eleven delegated rows resolve to core rows that are not green.** MIG-1..8, SNAP-2 and SNAP-3
-   are `not implemented` in the core, and REG-10 is `partial`. This binding authors none of that
+1. **Three delegated rows resolve to core rows that are not green.** SNAP-2 and SNAP-3 are
+   `not implemented` in the core, and REG-10 is `partial`. This binding authors none of that
    behaviour (each probe below reads 0 hits), so these turn green here when the core's rows do.
    `LangsysApp` is the core singleton by reference, so a new method on it is reachable here with
    no change; a new top-level export needs a one-line re-export.
@@ -24,7 +24,11 @@
    component and returns the core's `renderServerMessage`, so all ten shared render vectors come out
    identical through the hook and through the core. The one thing the hook adds is staying current:
    a render that does not subscribe keeps a stale message after the catalog arrives.
-3. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
+3. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
+   legacy-key mode is a source-language JSON file shipped with the app and passed as `legacyKeys`.
+   Against the contract fixture, a key renders the translation of its source value through
+   `useT()`, and a new key registers its value under the key's namespace, never the key.
+4. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
    `setPersistStorage` and `writeEnabled` each appear in 0 `dist` files of the published tarball;
    the control `canonicalizeLocale` appears in 6. Against it, a fresh clone fails `tsc` (Gap 1).
 
@@ -58,7 +62,7 @@ keeps a rendered server message current.
 | GATE-7 | delegated | - | core row GATE-7: implemented, contract · probe *GATE-1..9* → 0 hits · firing control hits. The only detecting path here is `t()`, and it is the core function by reference (BIND-6) |
 | GATE-8 | delegated | - | core row GATE-8: implemented, contract · probe *GATE-1..9* → 0 hits · firing control hits |
 | GATE-9 | delegated | - | core row GATE-9: implemented, contract · probe *GATE-1..9* → 0 hits, including `discovery_base_locale_only` in either spelling · firing control hits |
-| GATE-10 | n/a (architecture: no DOM — no subtree can carry data-ls-resolved, and nothing here renders on a server to hand off resolved values) | - | Live if this binding renders into a DOM, such as React Native for Web |
+| GATE-10 | n/a (architecture: no DOM — the rule's readers are DOM hosts, and React Native has none) | - | The readers are `<Translate>`, content blocks, `<Phrase>` and the page walk, none of which exists here. A bare `t()` call, `useT()` in this binding, is outside the rule by construction and records its miss as usual; GATE-9 governs it (delegated above). Nothing here renders on a server, so no resolved values are handed off either. Live if this binding renders into a DOM, such as React Native for Web |
 | CAT-1 | delegated | - | core row CAT-1: implemented, n/a (pure) · probe *CAT-1..3: no catalog reads or presence tests* → 0 hits · firing control hits on a `hasOwnProperty` presence test |
 | CAT-2 | delegated | - | core row CAT-2: implemented, n/a (pure) · probe *CAT-1..3* → 0 hits · firing control hits. Binding half: a present-with-null phrase renders exactly what the core renders (BIND-5) |
 | CAT-3 | delegated | - | core row CAT-3: implemented, n/a (pure) · probe *CAT-1..3* → 0 hits · firing control hits |
@@ -120,7 +124,7 @@ keeps a rendered server message current.
 | BIND-1 | implemented | n/a (pure) | `src/hooks.test.ts`, BIND-1 block (6 tests). `useT` returns the core's function by identity and follows it across a catalog change. `useCurrentLocale` returns the locale exactly as the core published it. The locale store passes `en-US`, `pt-BR` and `es-CR` through verbatim, leaving casing to the core, and keeps one identity across re-renders. Firing controls: a re-wrapped function is told apart, and every vector changes under `canonicalizeLocale`. The one lifecycle adaptation, the departure signal, is timing only (`src/teardown.test.ts`). Mutation M3 |
 | BIND-2 | implemented | n/a (pure) | `src/hooks.test.ts`: "returns undefined, false and true exactly as the core holds them". Firing control: a hook that defaults `undefined` to `false` is told apart. Probe *BIND-2: no branches on server-computed capability or policy* → 0 hits, and its firing control hits. Mutations M2 and M6 |
 | BIND-3 | implemented | n/a (pure) | Probe *BIND-3: no network behaviour: requests, headers, timers or scheduling* → 0 hits over the 4 pinned source files, and its firing control hits. The departure signal sends nothing itself: it calls the `fire` the core hands it. Mutation M5 |
-| BIND-4 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, BIND-4 block. `iLangsysInitConfig` declares exactly one member, `UserLocaleStore`, which narrows the core's `LocaleSource` to `Signal<string>`. A compile-time assertion makes any added key a `tsc` error. Firing control: the member reader sees an added `discovery` option. Mutation M4 |
+| BIND-4 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, BIND-4 block. `iLangsysInitConfig` declares exactly one member, `UserLocaleStore`, which narrows the core's `LocaleSource` to `Signal<string>`. Every core option, `legacyKeys` and `messagesCategory` included, is inherited unchanged. A compile-time assertion makes any added key a `tsc` error. Firing control: the member reader sees an added `discovery` option. Mutation M4 |
 | BIND-5 | implemented | n/a (pure) | `src/hooks.test.ts`, BIND-5 block: a present-with-null phrase renders what the core renders, then the later translation replaces it. Firing control: a memoized lookup keeps the stale value. Probe *BIND-5: no caching or memoizing lookups* → 0 hits, and its firing control hits. Mutation M3 |
 | BIND-6 | implemented | n/a (pure) | `src/surface.test.ts` (24 tests). `LangsysApp` is the core singleton itself. Every public core member is reachable, with public classified by the core's `.d.ts`, scoped to `LangsysAppClass`. Destructuring keeps identity. Seventeen values are the core exports by reference: `t`, `currentlyLoadedLocale`, `sTranslations`, `createSignal`, `writeEnabled`, `autoDiscovery`, `setWriteGrant`, `setPersistStorage`, `canonicalizeLocale`, `LangsysAppAPI`, and the server-message set `renderServerMessage`, `resolveServerMessages`, `toServerMessage`, `fillTemplate`, `templateMarkers`, `SERVER_MESSAGE_CODES`, `DEFAULT_SERVER_MESSAGE_CATEGORY`. `setTeardownSignal` is the one core value this binding adapts, so it is not re-exported, and that absence is pinned beside a control. Firing control: a Proxy hiding `seedCatalog` is detected. Omitted by design: `Translate` and `Phrase`, which walk a DOM. Mutation M1 |
 | GRANT-1 | delegated | - | core row GRANT-1: implemented, n/a (pure) · probe *GRANT-1..4: no grant resolution or transmission* → 0 hits · firing control hits on an `X-Write-Grant` header assignment. `writeGrant` is inherited from the core's config type, not declared here (BIND-4) |
@@ -135,9 +139,9 @@ keeps a rendered server message current.
 | WIRE-3 | delegated | - | core row WIRE-3: implemented, contract · probe *WIRE-1..5* → 0 hits · firing control hits. The locale store passes `en-US` through verbatim, so casing is the core's alone (BIND-1) |
 | WIRE-4 | delegated | - | core row WIRE-4: implemented, contract · probe *WIRE-1..5* → 0 hits · firing control hits. The REG-3 contract test runs a miss under React Native's globals, a refused send included, without a throw |
 | WIRE-5 | delegated | - | core row WIRE-5: implemented, n/a (pure) · probe *WIRE-1..5* → 0 hits · firing control hits. For this package's integrators the README section "Configuration: pointing at another API" documents `apiUrl` and its ordering, and `iLangsysInitConfig` inherits `apiUrl` from the core's type. The REG-3 contract test reaches the fixture through it |
-| CONF-1 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, CONF-1 block: no test asserts on spies, mock calls or outgoing requests, across the 6 pinned test files. Firing control hits. The contract test reads only the double's accepted state. Mutation M10 |
+| CONF-1 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, CONF-1 block: no test asserts on spies, mock calls or outgoing requests, across the 7 pinned test files. Firing control hits. The contract test reads only the double's accepted state. Mutation M10 |
 | CONF-2 | implemented | n/a (pure) | This file. Every row carries a tier: `contract` for REG-3, whose evidence is the double's accepted state; `n/a (pure)` for in-process, vector and meta rows; `-` for delegated and `n/a` rows. The one absence asserted against the double, REG-3's control, is one the double would have accepted: a write key, with the refused send's fault already consumed |
-| CONF-3 | implemented | n/a (pure) | Mutation evidence, below: thirteen mutations run in a disposable git worktree, each reddening named assertions |
+| CONF-3 | implemented | n/a (pure) | Mutation evidence, below: fourteen mutations run in a disposable git worktree, each reddening named assertions |
 | MSG-1 | delegated | - | core row MSG-1: implemented, n/a (pure) · probe *MSG-1..6: no server-message resolution or rendering* → 0 hits · firing control hits on `t(entry.template, 'Errors', entry.params ?? {})`. `resolveServerMessages` and `toServerMessage` are the core functions by reference (BIND-6) |
 | MSG-2 | delegated | - | core row MSG-2: implemented, n/a (pure) · probe *MSG-1..6* → 0 hits · firing control hits. Nothing here reads `code`; `SERVER_MESSAGE_CODES` is the core's list by reference |
 | MSG-3 | n/a (profile: server) | - | Profiles line: server |
@@ -150,14 +154,14 @@ keeps a rendered server message current.
 | MSG-10 | n/a (profile: server) | - | Profiles line: server |
 | MSG-11 | n/a (profile: server) | - | Profiles line: server |
 | MSG-12 | n/a (architecture: no server render — no framework redirect hands entries to a page) | - | The binding clause covers a server framework's redirect after a failed form. Nothing here runs on a server; entries reach a React Native app in its own API responses |
-| MIG-1 | delegated | - | core row MIG-1: not implemented · probe *MIG-1..8: no legacy-key lookup or conversion* → 0 hits · firing control hits on a legacy-file key lookup. Resolves with the core row |
-| MIG-2 | delegated | - | core row MIG-2: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. `t()` is the core function by reference, so the mode's lookup runs there. Resolves with the core row |
-| MIG-3 | delegated | - | core row MIG-3: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
-| MIG-4 | delegated | - | core row MIG-4: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
-| MIG-5 | delegated | - | core row MIG-5: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
-| MIG-6 | delegated | - | core row MIG-6: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
-| MIG-7 | delegated | - | core row MIG-7: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
-| MIG-8 | delegated | - | core row MIG-8: not implemented · probe *MIG-1..8* → 0 hits · firing control hits. Resolves with the core row |
+| MIG-1 | delegated | - | core row MIG-1: implemented, n/a (pure) · probe *MIG-1..8: no legacy-key lookup or conversion* → 0 hits · firing control hits on a legacy-file key lookup. This binding's `init` passes `legacyKeys` through untouched: `src/legacy-keys.test.ts`, against the contract fixture, inits with a bundled `en.json` and renders `checkout.submit` as the translation of its value through `useT()`, which is possible only if the file arrived. Mutation M13 |
+| MIG-2 | delegated | - | core row MIG-2: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. `t()` is the core function by reference, so the mode's lookup runs there. |
+| MIG-3 | delegated | - | core row MIG-3: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. |
+| MIG-4 | delegated | - | core row MIG-4: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. |
+| MIG-5 | delegated | - | core row MIG-5: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. Through this binding, a new key's value is accepted by the double under the key's namespace, and the key string never is (`src/legacy-keys.test.ts`) |
+| MIG-6 | delegated | - | core row MIG-6: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. |
+| MIG-7 | delegated | - | core row MIG-7: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. |
+| MIG-8 | delegated | - | core row MIG-8: implemented, n/a (pure) · probe *MIG-1..8* → 0 hits · firing control hits. |
 | MIG-9 | n/a (profile: server) | - | Profiles line: server |
 | SNAP-1 | n/a (profile: server) | - | Profiles line: server |
 | SNAP-2 | delegated | - | core row SNAP-2: not implemented · probe *SNAP-2..3: no snapshot loading* → 0 hits · firing control hits. A catalog bundled with the app is the mobile case: the loader is the core's, and `seedCatalog`, its seed, is already forwarded (BIND-6). Resolves with the core row |
@@ -168,7 +172,7 @@ keeps a rendered server message current.
 Each runtime claim above is proven by breaking it and watching named assertions fail (CONF-3). The
 mutations run in a disposable git worktree carrying this tree, never in the working copy. Each
 mutation asserts that its edit applied exactly once before running, and the worktree's baseline is
-97 passed with typecheck clean.
+100 passed with typecheck clean.
 
 | Mutation | Target | Assertions that went red |
 |---|---|---|
@@ -184,7 +188,8 @@ mutation asserts that its edit applied exactly once before running, and the work
 | M10: a `vi.fn()` call assertion added to `hooks.test.ts` | CONF-1 | "no test asserts on spies, mock calls or outgoing requests" |
 | M11: `useServerMessage` no longer calls `useT()` | MSG-5 | "follows the catalog: the entry's message, then the translation once it arrives" |
 | M12: `useServerMessage` returns `entry.message` itself | MSG-5 | five render vectors ("translation-present", "translation-present-no-params", "icu-plural-translation-count-one", "icu-plural-translation-count-many", "code-does-not-choose-text"); "follows the catalog …"; probe "MSG-1..6: no server-message resolution or rendering > absent from this binding" |
-| M13: `node_modules/langsys-js-typescript` resolved to the published 0.6.5 tarball | release | `tsc` TS2305 ×19 in `src`: every 838 name the binding imports, from `writeEnabled` and `setTeardownSignal` to the server-message exports; "carries every 838 name this binding imports or forwards". Its positive control, the pre-838 baseline, stays green |
+| M13: `LangsysApp` replaced by an object whose `init` drops `legacyKeys` before calling the core | MIG passthrough | "a key renders the translation of its source value, through useT()"; "a new key registers its value under the key's namespace, never the key"; "is the core singleton itself" |
+| M14: `node_modules/langsys-js-typescript` resolved to the published 0.6.5 tarball | release | `tsc` TS2305 ×19 in `src`: every 838 name the binding imports, from `writeEnabled` and `setTeardownSignal` to the server-message exports; "carries every 838 name this binding imports or forwards". Its positive control, the pre-838 baseline, stays green |
 
 ## Probes
 
@@ -207,8 +212,8 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
    published 0.6.5, against which a fresh clone fails `tsc` (TS2305 ×19) and the upstream
    precondition test. It blocks installability, not behaviour, and belongs to the release wave:
    the range must name the core version that ships this surface.
-2. **Eleven delegated rows wait on the core.** MIG-1..8 and SNAP-2/3 are not built in the core, and
-   REG-10 is partial there. SNAP-2 matters most on mobile: a catalog bundled with
+2. **Three delegated rows wait on the core.** SNAP-2 and SNAP-3 are not built there, and REG-10 is
+   partial. SNAP-2 matters most on mobile: a catalog bundled with
    the app is the natural first paint and offline source.
 3. **ICU on Hermes is not exercised.** The delegated ICU rows rest on core evidence produced under
    Node's full ICU. Hermes's `Intl` coverage varies by React Native version and build flags, and
@@ -225,10 +230,10 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
 
 ```bash
 # the spec text this file was checked against
-git -C ~/Documents/dev/langsys2 ls-tree 43d090c3 docs/sdk-spec.mdx     # blob 286dcfe4…
+git -C ~/Documents/dev/langsys2 ls-tree 9b23f3d8 docs/sdk-spec.mdx     # blob 33bbc409…
 
 # a clean build of the core under test, linked in place of the sibling working copy
-git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 86871033
+git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 2d57cdd9
 (cd /tmp/core && npm ci && npm run build)
 ln -sfn /tmp/core node_modules/langsys-js-typescript
 

@@ -1,7 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process';
-import { createInterface } from 'node:readline';
-import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { sleep, startContractFixture, type ContractFixture } from '../test-stubs/contract-fixture.js';
 
 /**
  * REG-3 on React Native, against the contract fixture (tier `contract`).
@@ -33,45 +31,12 @@ const SEED = {
 };
 const REFUSE_FIRST_SEND = { ...SEED, faults: [{ method: 'POST', path: '/translatable-items', times: 1, status: 500 }] };
 
-interface Fixture {
-    baseUrl: string;
-    fixtureUrl: string;
-    proc: ChildProcess;
-}
-let fx: Fixture;
-
-async function startFixture(): Promise<Fixture> {
-    const server = fileURLToPath(new URL('../contract-fixture/server.mjs', import.meta.url));
-    const proc = spawn(process.execPath, [server], { stdio: ['ignore', 'pipe', 'inherit'] });
-    const line = await new Promise<string>((resolve, reject) => {
-        createInterface({ input: proc.stdout! }).once('line', resolve);
-        proc.once('exit', (code) => reject(new Error(`contract fixture exited with ${code}`)));
-    });
-    const ready = JSON.parse(line) as { base_url: string; fixture_url: string };
-    return { baseUrl: ready.base_url, fixtureUrl: ready.fixture_url, proc };
-}
-
-async function seed(doc: object): Promise<void> {
-    const res = await fetch(`${fx.fixtureUrl}/seed`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(doc),
-    });
-    if (!res.ok) throw new Error(`seed refused: ${res.status}`);
-}
-
-async function registered(): Promise<string[]> {
-    const state = (await (await fetch(`${fx.fixtureUrl}/state`)).json()) as {
-        projects: Record<string, { phrases: Array<{ phrase: string }> }>;
-    };
-    return (state.projects.p1?.phrases ?? []).map((p) => p.phrase);
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+let fx: ContractFixture;
+const registered = async () => (await fx.registered('p1')).map((p) => p.phrase);
 
 beforeAll(async () => {
-    fx = await startFixture();
-    await seed(SEED);
+    fx = await startContractFixture();
+    await fx.seed(SEED);
     const res = await LangsysApp.init({
         projectid: 'p1',
         key: 'k-write',
@@ -85,13 +50,13 @@ beforeAll(async () => {
 }, 15_000);
 
 afterAll(() => {
-    fx?.proc.kill();
+    fx?.stop();
     delete (globalThis as Record<string, unknown>).window;
 });
 
 beforeEach(async () => {
     emitAppState('active');
-    await seed(REFUSE_FIRST_SEND);
+    await fx.seed(REFUSE_FIRST_SEND);
 });
 
 describe('REG-3 — what is queued when the app leaves the foreground is sent', () => {
