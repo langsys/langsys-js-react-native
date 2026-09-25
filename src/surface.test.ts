@@ -77,6 +77,7 @@ describe('BIND-6 — LangsysApp is the core singleton, by reference', () => {
         expect(missingFrom(rn.LangsysApp, publicSurface)).toEqual([]);
         expect(rn.LangsysApp.seedCatalog).toBe(core.LangsysApp.seedCatalog);
         expect(rn.LangsysApp.setWriteGrant).toBe(core.LangsysApp.setWriteGrant);
+        expect(rn.LangsysApp.loadSnapshot).toBe(core.LangsysApp.loadSnapshot);
     });
 
     it('firing control: the reachability check detects a hidden member', () => {
@@ -112,6 +113,7 @@ describe('BIND-6 — core values re-exported by reference', () => {
         ['templateMarkers', core.templateMarkers],
         ['SERVER_MESSAGE_CODES', core.SERVER_MESSAGE_CODES],
         ['DEFAULT_SERVER_MESSAGE_CATEGORY', core.DEFAULT_SERVER_MESSAGE_CATEGORY],
+        ['SnapshotError', core.SnapshotError],
     ];
 
     for (const [name, value] of byReference) {

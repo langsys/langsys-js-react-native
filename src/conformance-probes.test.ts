@@ -179,9 +179,9 @@ const PROBES: Probe[] = [
     },
     {
         rule: 'SNAP-2..3',
-        behaviour: 'snapshot loading',
-        pattern: /snapshot|preload/i,
-        firesOn: 'LangsysApp.seedCatalog(loadSnapshot(bundle), locale);',
+        behaviour: 'snapshot parsing, verification or loading',
+        pattern: /JSON\.parse\(|parseSnapshot\(|snapshotChecksum\(|checksum|sha256|preload/i,
+        firesOn: 'const snap = JSON.parse(bundle); LangsysApp.seedCatalog(snap.catalog[locale], locale);',
     },
 ];
 
@@ -256,6 +256,7 @@ describe('CONF-1 — no conformance claim rests on what the SDK sent', () => {
             'legacy-keys.test.ts',
             'rn-teardown.test.ts',
             'server-messages.test.ts',
+            'snapshot.test.ts',
             'surface.test.ts',
             'teardown.test.ts',
             'upstream-precondition.test.ts',

@@ -115,6 +115,26 @@ const entries = resolveServerMessages(await response.json());
 Entries are looked up under the `Errors` category unless you set
 `messagesCategory` in `init`.
 
+## A bundled catalog for the first launch
+
+Ship a catalog snapshot exported from Langsys inside the app, and load it before
+the first render: translations then show on the very first launch and offline,
+with no network call.
+
+```ts
+import snapshot from './langsys-snapshot.json';
+
+LangsysApp.loadSnapshot(snapshot); // synchronous; for another locale, pass it as the second argument
+LangsysApp.init({ projectid: '...', key: '...', UserLocaleStore: store });
+```
+
+The snapshot is a cache, not the source of truth. `init()` still fetches the
+catalog and replaces it, and a phrase the snapshot lacks is found there. To
+refresh one, export it again; an edited snapshot fails its checksum and
+`loadSnapshot` throws a `SnapshotError` (`error.reason === 'checksum'`) rather
+than serving it. `loadSnapshot` returns `false` when the snapshot holds no
+catalog for the locale.
+
 ## Migrating from i18n keys
 
 If your app already translates with keys, pass its source-language file to

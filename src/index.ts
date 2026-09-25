@@ -79,6 +79,11 @@ export {
     type ServerMessage,
 } from 'langsys-js-typescript';
 
+// Bundled catalog snapshots (SNAP): `LangsysApp.loadSnapshot` seeds the catalog
+// synchronously from a snapshot shipped with the app, and throws `SnapshotError`,
+// naming the reason, for one that was edited or is not a snapshot.
+export { SnapshotError, type CatalogSnapshot, type SnapshotRefusal } from 'langsys-js-typescript';
+
 // Storage injection (see module docs above) + locale canonicalization + API client.
 export { canonicalizeLocale, LangsysAppAPI, setPersistStorage } from 'langsys-js-typescript';
 
