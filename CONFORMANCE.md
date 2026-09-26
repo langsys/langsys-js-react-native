@@ -2,39 +2,44 @@
 
 | | |
 |---|---|
-| **Spec revision read** | langsys2 a95af2c2…, docs/sdk-spec.mdx blob 5d7e6890b733a50fb6f5f5c30e0056c6ef7bcf45 |
+| **Spec revision read** | langsys2 aac52142…, docs/sdk-spec.mdx blob 5f01ef7d761c35157e553ed0ea83b9a4539511c3 |
 | **Profiles** | browser, binding, all — derived: binding over langsys-js-typescript |
-| **specVersion** | 8.2.18. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree a95af2c2 docs/sdk-spec.mdx`, and the 113 rule ids below are enumerated from it |
+| **specVersion** | 8.2.19. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx`, and the 114 rule ids below are enumerated from it |
 | **SDK** | `langsys-js-react-native` 0.1.0 — React Native binding, hooks-first, experimental |
 | **SDK revision** | `feature/838_write_key_gating` |
-| **Core consumed** | `langsys-js-typescript` `239166a6` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `ae07da12fa0c938691406d963e0cb44903411d70` at that commit, graded against the same spec blob as this file |
-| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `239166a6`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
+| **Core consumed** | `langsys-js-typescript` `fbbb6a93` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `fd65a04f722e6f0d63cdae59e82f1f03d3f31e79` at that commit, graded against 8.2.18 (blob `5d7e6890`) — see What surfaced |
+| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `fbbb6a93`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
 | **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `7333e3919dac43af81c6c20bfdba974efd79725b`, which the suite recomputes and pins |
 | **Suite** | 118 tests in 9 files, `npm test`, all passing. Counted from vitest's report at this tip |
-| **Tally** | implemented 11 · delegated 59 · n/a (architecture) 33 · n/a (profile: server) 10 — 113 rows, each id graded once |
+| **Tally** | implemented 11 · delegated 59 · n/a (architecture) 34 · n/a (profile: server) 10 — 114 rows, each id graded once |
 
 **What surfaced while writing this.**
 
 1. **One delegated row resolves to a core row that is not green: REG-10**, `partial` in the core
    and waiting on an API decision there. This binding authors no registration behaviour (the REG
    probe reads 0 hits), so it turns green here when the core's row does.
-2. **Server messages resolve through configuration and render through one decision, the core's.**
+2. **The core's file is graded against 8.2.18, this one against 8.2.19.** Between the two blobs
+   only REG-10, SSR-3 and SRV-6 changed text, and SRV-7 is new. Of these, only REG-10 is a delegated
+   row here, and its core row is `partial` on either text; SSR-3, SRV-6 and SRV-7 are
+   `n/a (architecture: no server render)`. Every other delegated row resolves against a core row
+   graded on identical rule text.
+3. **Server messages resolve through configuration and render through one decision, the core's.**
    `resolveServerMessages` reads entries only at the key the app names (or through its resolver),
    and all ten shared resolve vectors, drawn from Laravel, FastAPI, DRF and Rails error bodies,
    come out as expected with the body unchanged. `useServerMessage` subscribes the component and
    returns the core's `renderServerMessage`, so all twelve render vectors come out identical
    through the hook and through the core. The one thing the hook adds is staying current: a render
    that does not subscribe keeps a stale message after the catalog arrives.
-3. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
+4. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
    legacy-key mode is a source-language JSON file shipped with the app and passed as `legacyKeys`.
    Against the contract fixture, a key renders the translation of its source value through
    `useT()`, and a new key registers its value under the key's namespace, never the key.
-4. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
+5. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
    is the core method by reference, and `SnapshotError` the core's class. A snapshot shipped with
    the app renders through `useT()` the moment it loads, before `init()` and with nothing awaited;
    an edited one is refused as `checksum`; and once `init()` runs against the contract fixture, a
    phrase the snapshot lacks renders the catalog's translation.
-5. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
+6. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
    `setPersistStorage` and `writeEnabled` each appear in 0 `dist` files of the published tarball;
    the control `canonicalizeLocale` appears in 6. Against it, a fresh clone fails `tsc` (Gap 1).
 
@@ -127,6 +132,7 @@ keeps a rendered server message current.
 | SRV-4 | n/a (architecture: no server render) | - | As SRV-1. The core's half, the synchronous seed, is forwarded by reference as `LangsysApp.seedCatalog` (BIND-6). The binding's half, calling it before hydration, exists only where hydration does |
 | SRV-5 | n/a (architecture: no server render) | - | As SRV-1 |
 | SRV-6 | n/a (architecture: no server render) | - | As SRV-1: no request exists whose locale to resolve. The app's locale is the `UserLocaleStore` it passes to `init` |
+| SRV-7 | n/a (architecture: no server render) | - | As SRV-1. The rule's binding half is wiring a framework that renders on a server into the core's request scope; this binding never renders on a server, so there is no framework request to wire. The core's half, the scope itself, is the core's row. Live under the same condition as SSR-1 |
 | BIND-1 | implemented | n/a (pure) | `src/hooks.test.ts`, BIND-1 block (6 tests). `useT` returns the core's function by identity and follows it across a catalog change. `useCurrentLocale` returns the locale exactly as the core published it. The locale store passes `en-US`, `pt-BR` and `es-CR` through verbatim, leaving casing to the core, and keeps one identity across re-renders. Firing controls: a re-wrapped function is told apart, and every vector changes under `canonicalizeLocale`. The one lifecycle adaptation, the departure signal, is timing only (`src/teardown.test.ts`). Mutation M3 |
 | BIND-2 | implemented | n/a (pure) | `src/hooks.test.ts`: "returns undefined, false and true exactly as the core holds them". Firing control: a hook that defaults `undefined` to `false` is told apart. Probe *BIND-2: no branches on server-computed capability or policy* → 0 hits, and its firing control hits. Mutations M2 and M6 |
 | BIND-3 | implemented | n/a (pure) | Probe *BIND-3: no network behaviour: requests, headers, timers or scheduling* → 0 hits over the 4 pinned source files, and its firing control hits. The departure signal sends nothing itself: it calls the `fire` the core hands it. Mutation M5 |
@@ -237,10 +243,10 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
 
 ```bash
 # the spec text this file was checked against
-git -C ~/Documents/dev/langsys2 ls-tree a95af2c2 docs/sdk-spec.mdx     # blob 5d7e6890…
+git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx     # blob 5f01ef7d…
 
 # a clean build of the core under test, linked in place of the sibling working copy
-git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 239166a6
+git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core fbbb6a93
 (cd /tmp/core && npm ci && npm run build)
 ln -sfn /tmp/core node_modules/langsys-js-typescript
 
