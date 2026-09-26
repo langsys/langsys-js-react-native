@@ -64,12 +64,13 @@ export { autoDiscovery, writeEnabled } from 'langsys-js-typescript';
 // logs in). Standalone alias for `LangsysApp.setWriteGrant`; both re-authorize.
 export { setWriteGrant } from 'langsys-js-typescript';
 
-// Server messages (MSG): resolve entries from any response body and render
-// them — the template through `t()` when the catalog holds it, the entry's own
-// `message` otherwise. In components, `useServerMessage` keeps one current.
+// Server messages (MSG): resolve entries from a response body at the key the
+// server attached them under (or through a resolver the app supplies), and
+// render them — the template through `t()` when the catalog holds it, the
+// entry's own `message` otherwise. In components, `useServerMessage` keeps one
+// current.
 export {
     DEFAULT_SERVER_MESSAGE_CATEGORY,
-    SERVER_MESSAGE_CODES,
     fillTemplate,
     renderServerMessage,
     resolveServerMessages,
@@ -77,6 +78,7 @@ export {
     toServerMessage,
     type ResolveServerMessagesOptions,
     type ServerMessage,
+    type ServerMessagePieces,
 } from 'langsys-js-typescript';
 
 // Bundled catalog snapshots (SNAP): `LangsysApp.loadSnapshot` seeds the catalog

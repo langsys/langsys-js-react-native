@@ -96,10 +96,11 @@ every core method is on it, including:
 ## Server messages
 
 Validation errors and other messages your API returns can be translated like any
-other phrase. Find the entries in a response with `resolveServerMessages`, then
-render each with `useServerMessage`: it shows the translation of the entry's
-template when the catalog has one, the entry's own `message` otherwise, and
-re-renders when the catalog or locale changes.
+other phrase. Your server attaches translatable entries beside its framework's
+own error body; find them with `resolveServerMessages`, naming the key they sit
+under, then render each with `useServerMessage`. It shows the translation of the
+entry's template when the catalog has one, the entry's own `message` otherwise,
+and re-renders when the catalog or locale changes.
 
 ```tsx
 import { Text } from 'react-native';
@@ -109,53 +110,16 @@ function FieldError({ entry }: { entry: ServerMessage }) {
     return <Text>{useServerMessage(entry)}</Text>;
 }
 
-const entries = resolveServerMessages(await response.json());
+const body = await response.json();
+const entries = resolveServerMessages(body, { key: 'langsys_errors' });
 ```
 
+`key` is the dotted path your server attaches the entries under (`langsys_errors`
+is the Laravel package's default). When they arrive some other way, pass a
+`resolver` that maps the body to entries instead; when your server names the
+entries' pieces differently, pass `pieces`. The body itself is never changed.
 Entries are looked up under the `Errors` category unless you set
 `messagesCategory` in `init`.
-
-## A bundled catalog for the first launch
-
-Ship a catalog snapshot exported from Langsys inside the app, and load it before
-the first render: translations then show on the very first launch and offline,
-with no network call.
-
-```ts
-import snapshot from './langsys-snapshot.json';
-
-LangsysApp.loadSnapshot(snapshot); // synchronous; for another locale, pass it as the second argument
-LangsysApp.init({ projectid: '...', key: '...', UserLocaleStore: store });
-```
-
-The snapshot is a cache, not the source of truth. `init()` still fetches the
-catalog and replaces it, and a phrase the snapshot lacks is found there. To
-refresh one, export it again; an edited snapshot fails its checksum and
-`loadSnapshot` throws a `SnapshotError` (`error.reason === 'checksum'`) rather
-than serving it. `loadSnapshot` returns `false` when the snapshot holds no
-catalog for the locale.
-
-## Migrating from i18n keys
-
-If your app already translates with keys, pass its source-language file to
-`init` as `legacyKeys`. `t('checkout.submit')` then resolves the key to its
-value and translates that value, so keyed and plain-text calls work side by
-side while you migrate. A JSON file bundled with the app works as is:
-
-```ts
-import en from './locales/en.json';
-
-LangsysApp.init({
-    projectid: '...',
-    key: '...',
-    UserLocaleStore: store,
-    legacyKeys: [{ name: 'en.json', data: en }],
-});
-```
-
-A key's leading namespace becomes its category (`checkout.submit` → `checkout`)
-unless the call passes one. Langsys only ever sees the source values, never the
-keys. `format` may be `plain` (the default), `i18next` or `vue-i18n`.
 
 ## Configuration: pointing at another API
 

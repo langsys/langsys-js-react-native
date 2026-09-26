@@ -84,7 +84,7 @@ export function useWriteEnabled(): boolean | undefined {
  * hook only subscribes the component, so it re-renders when the catalog or the
  * locale changes.
  *
- *   const [entry] = resolveServerMessages(await response.json());
+ *   const [entry] = resolveServerMessages(await response.json(), { key: 'langsys_errors' });
  *   const text = useServerMessage(entry);
  *
  * `category` defaults to the one configured with `messagesCategory` in `init`

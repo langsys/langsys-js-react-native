@@ -111,7 +111,6 @@ describe('BIND-6 — core values re-exported by reference', () => {
         ['toServerMessage', core.toServerMessage],
         ['fillTemplate', core.fillTemplate],
         ['templateMarkers', core.templateMarkers],
-        ['SERVER_MESSAGE_CODES', core.SERVER_MESSAGE_CODES],
         ['DEFAULT_SERVER_MESSAGE_CATEGORY', core.DEFAULT_SERVER_MESSAGE_CATEGORY],
         ['SnapshotError', core.SnapshotError],
     ];

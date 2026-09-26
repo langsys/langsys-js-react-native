@@ -2,15 +2,15 @@
 
 | | |
 |---|---|
-| **Spec revision read** | langsys2 f5568b88…, docs/sdk-spec.mdx blob b9fd4b5b1c15f7ba29656d550dca1f06013327c0 |
+| **Spec revision read** | langsys2 a95af2c2…, docs/sdk-spec.mdx blob 5d7e6890b733a50fb6f5f5c30e0056c6ef7bcf45 |
 | **Profiles** | browser, binding, all — derived: binding over langsys-js-typescript |
-| **specVersion** | 8.2.15. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree f5568b88 docs/sdk-spec.mdx`, and the 113 rule ids below are enumerated from it |
+| **specVersion** | 8.2.18. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree a95af2c2 docs/sdk-spec.mdx`, and the 113 rule ids below are enumerated from it |
 | **SDK** | `langsys-js-react-native` 0.1.0 — React Native binding, hooks-first, experimental |
 | **SDK revision** | `feature/838_write_key_gating` |
-| **Core consumed** | `langsys-js-typescript` `a639ae8c` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `b438b4adef8e9465f77f464ac1b36ff75c2eb7b3` at that commit, graded against the same spec blob as this file |
-| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `a639ae8c`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
-| **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `c8125549cfee0f5286f79a8cbc194cd30ccd446e`, which the suite recomputes and pins |
-| **Suite** | 106 tests in 9 files, `npm test`, all passing. Counted from vitest's report at this tip |
+| **Core consumed** | `langsys-js-typescript` `239166a6` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `ae07da12fa0c938691406d963e0cb44903411d70` at that commit, graded against the same spec blob as this file |
+| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `239166a6`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
+| **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `7333e3919dac43af81c6c20bfdba974efd79725b`, which the suite recomputes and pins |
+| **Suite** | 118 tests in 9 files, `npm test`, all passing. Counted from vitest's report at this tip |
 | **Tally** | implemented 11 · delegated 59 · n/a (architecture) 33 · n/a (profile: server) 10 — 113 rows, each id graded once |
 
 **What surfaced while writing this.**
@@ -18,10 +18,13 @@
 1. **One delegated row resolves to a core row that is not green: REG-10**, `partial` in the core
    and waiting on an API decision there. This binding authors no registration behaviour (the REG
    probe reads 0 hits), so it turns green here when the core's row does.
-2. **Server messages render through one decision, the core's.** `useServerMessage` subscribes the
-   component and returns the core's `renderServerMessage`, so all ten shared render vectors come out
-   identical through the hook and through the core. The one thing the hook adds is staying current:
-   a render that does not subscribe keeps a stale message after the catalog arrives.
+2. **Server messages resolve through configuration and render through one decision, the core's.**
+   `resolveServerMessages` reads entries only at the key the app names (or through its resolver),
+   and all ten shared resolve vectors, drawn from Laravel, FastAPI, DRF and Rails error bodies,
+   come out as expected with the body unchanged. `useServerMessage` subscribes the component and
+   returns the core's `renderServerMessage`, so all twelve render vectors come out identical
+   through the hook and through the core. The one thing the hook adds is staying current: a render
+   that does not subscribe keeps a stale message after the catalog arrives.
 3. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
    legacy-key mode is a source-language JSON file shipped with the app and passed as `legacyKeys`.
    Against the contract fixture, a key renders the translation of its source value through
@@ -129,7 +132,7 @@ keeps a rendered server message current.
 | BIND-3 | implemented | n/a (pure) | Probe *BIND-3: no network behaviour: requests, headers, timers or scheduling* → 0 hits over the 4 pinned source files, and its firing control hits. The departure signal sends nothing itself: it calls the `fire` the core hands it. Mutation M5 |
 | BIND-4 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, BIND-4 block. `iLangsysInitConfig` declares exactly one member, `UserLocaleStore`, which narrows the core's `LocaleSource` to `Signal<string>`. Every core option, `legacyKeys` and `messagesCategory` included, is inherited unchanged. A compile-time assertion makes any added key a `tsc` error. Firing control: the member reader sees an added `discovery` option. Mutation M4 |
 | BIND-5 | implemented | n/a (pure) | `src/hooks.test.ts`, BIND-5 block: a present-with-null phrase renders what the core renders, then the later translation replaces it. Firing control: a memoized lookup keeps the stale value. Probe *BIND-5: no caching or memoizing lookups* → 0 hits, and its firing control hits. Mutation M3 |
-| BIND-6 | implemented | n/a (pure) | `src/surface.test.ts` (25 tests). `LangsysApp` is the core singleton itself. Every public core member is reachable, `loadSnapshot` included, with public classified by the core's `.d.ts`, scoped to `LangsysAppClass`. Destructuring keeps identity. Eighteen values are the core exports by reference: `t`, `currentlyLoadedLocale`, `sTranslations`, `createSignal`, `writeEnabled`, `autoDiscovery`, `setWriteGrant`, `setPersistStorage`, `canonicalizeLocale`, `LangsysAppAPI`, and the server-message set `renderServerMessage`, `resolveServerMessages`, `toServerMessage`, `fillTemplate`, `templateMarkers`, `SERVER_MESSAGE_CODES`, `DEFAULT_SERVER_MESSAGE_CATEGORY`, and `SnapshotError`. `setTeardownSignal` is the one core value this binding adapts, so it is not re-exported, and that absence is pinned beside a control. Firing control: a Proxy hiding `seedCatalog` is detected. Omitted by design: `Translate` and `Phrase`, which walk a DOM. Mutation M1 |
+| BIND-6 | implemented | n/a (pure) | `src/surface.test.ts` (24 tests). `LangsysApp` is the core singleton itself. Every public core member is reachable, `loadSnapshot` included, with public classified by the core's `.d.ts`, scoped to `LangsysAppClass`. Destructuring keeps identity. Seventeen values are the core exports by reference: `t`, `currentlyLoadedLocale`, `sTranslations`, `createSignal`, `writeEnabled`, `autoDiscovery`, `setWriteGrant`, `setPersistStorage`, `canonicalizeLocale`, `LangsysAppAPI`, and the server-message set `renderServerMessage`, `resolveServerMessages`, `toServerMessage`, `fillTemplate`, `templateMarkers`, `DEFAULT_SERVER_MESSAGE_CATEGORY`, and `SnapshotError`. `setTeardownSignal` is the one core value this binding adapts, so it is not re-exported, and that absence is pinned beside a control. Firing control: a Proxy hiding `seedCatalog` is detected. Omitted by design: `Translate` and `Phrase`, which walk a DOM. Mutation M1 |
 | GRANT-1 | delegated | - | core row GRANT-1: implemented, n/a (pure) · probe *GRANT-1..4: no grant resolution or transmission* → 0 hits · firing control hits on an `X-Write-Grant` header assignment. `writeGrant` is inherited from the core's config type, not declared here (BIND-4) |
 | GRANT-2 | delegated | - | core row GRANT-2: implemented, n/a (pure) · probe *GRANT-1..4* → 0 hits · firing control hits |
 | GRANT-3 | delegated | - | core row GRANT-3: implemented, n/a (pure) · probe *GRANT-1..4* → 0 hits · firing control hits. `setWriteGrant` is the core function by reference (BIND-6) |
@@ -145,11 +148,11 @@ keeps a rendered server message current.
 | CONF-1 | implemented | n/a (pure) | `src/conformance-probes.test.ts`, CONF-1 block: no test asserts on spies, mock calls or outgoing requests, across the 8 pinned test files. Firing control hits. The contract test reads only the double's accepted state. Mutation M10 |
 | CONF-2 | implemented | n/a (pure) | This file. Every row carries a tier: `contract` for REG-3, whose evidence is the double's accepted state; `n/a (pure)` for in-process, vector and meta rows; `-` for delegated and `n/a` rows. The one absence asserted against the double, REG-3's control, is one the double would have accepted: a write key, with the refused send's fault already consumed |
 | CONF-3 | implemented | n/a (pure) | Mutation evidence, below: sixteen mutations run in a disposable git worktree, each reddening named assertions |
-| MSG-1 | delegated | - | core row MSG-1: implemented, n/a (pure) · probe *MSG-1..6: no server-message resolution or rendering* → 0 hits · firing control hits on `t(entry.template, 'Errors', entry.params ?? {})`. `resolveServerMessages` and `toServerMessage` are the core functions by reference (BIND-6) |
-| MSG-2 | delegated | - | core row MSG-2: implemented, n/a (pure) · probe *MSG-1..6* → 0 hits · firing control hits. Nothing here reads `code`; `SERVER_MESSAGE_CODES` is the core's list by reference |
+| MSG-1 | delegated | - | core row MSG-1: implemented, n/a (pure) · probe *MSG-1..6: no server-message resolution or rendering* → 0 hits · firing control hits on `t(entry.template, 'Errors', entry.params ?? {})`. `resolveServerMessages` is the core function by reference (BIND-6), and it reads entries only where the app configures: a `key`, or a `resolver`, with `pieces` for renamed fields. Through this binding (`src/server-messages.test.ts`): all ten resolve vectors resolve as expected and leave the framework's body unchanged; and the spec's own check, the same canonical entries attached beside a Laravel and a FastAPI native error body, resolved by key and rendered through `useServerMessage`, come out identical, with the framework's `errors` untouched. Mutation M12 |
+| MSG-2 | delegated | - | core row MSG-2: implemented, n/a (pure) · probe *MSG-1..6* → 0 hits · firing control hits. An entry's `code` is the framework's own and passes through untouched; nothing here reads it, and the render vector `code-does-not-choose-text` shows it does not choose the text through the hook |
 | MSG-3 | n/a (profile: server) | - | Profiles line: server |
 | MSG-4 | n/a (profile: server) | - | Profiles line: server |
-| MSG-5 | implemented | n/a (pure) | The decision is the core's (core row MSG-5: implemented, n/a (pure)): `renderServerMessage`, re-exported by reference, renders the template through `t()` when the catalog holds it and the entry's `message` otherwise. The binding's half is `useServerMessage`, which subscribes the component and returns that result. `src/server-messages.test.ts`: all ten render vectors of the vendored file (blob pinned) render through the hook in a real React tree, equal to the expected text and to the core's own answer; the hook follows the catalog from the entry's message to the translation once it arrives. Firing control: a render that does not subscribe keeps the stale message. Probe *MSG-1..6* → 0 hits, so no fallback is decided here. Mutations M11 and M12 |
+| MSG-5 | implemented | n/a (pure) | The decision is the core's (core row MSG-5: implemented, n/a (pure)): `renderServerMessage`, re-exported by reference, renders the template through `t()` when the catalog holds it and the entry's `message` otherwise. The binding's half is `useServerMessage`, which subscribes the component and returns that result. `src/server-messages.test.ts`: all twelve render vectors of the vendored file (blob pinned) render through the hook, including an entry with no template, which shows its `message`, in a real React tree, equal to the expected text and to the core's own answer; the hook follows the catalog from the entry's message to the translation once it arrives. Firing control: a render that does not subscribe keeps the stale message. Probe *MSG-1..6* → 0 hits, so no fallback is decided here. Mutations M11 and M12 |
 | MSG-6 | delegated | - | core row MSG-6: implemented, n/a (pure) · probe *MSG-1..6* → 0 hits · firing control hits. `messagesCategory` is inherited from the core's config type, not declared here (BIND-4), and `useServerMessage` passes the category through untouched |
 | MSG-7 | n/a (profile: server) | - | Profiles line: server |
 | MSG-8 | n/a (profile: server) | - | Profiles line: server |
@@ -175,11 +178,11 @@ keeps a rendered server message current.
 Each runtime claim above is proven by breaking it and watching named assertions fail (CONF-3). The
 mutations run in a disposable git worktree carrying this tree, never in the working copy. Each
 mutation asserts that its edit applied exactly once before running, and the worktree's baseline is
-106 passed with typecheck clean.
+118 passed with typecheck clean.
 
 | Mutation | Target | Assertions that went red |
 |---|---|---|
-| M1: `src/index.ts` replaced by the wrapper class that listed core methods one by one | BIND-6 | 14 of 25 in `surface.test.ts`: "is the core singleton itself"; "reaches every public core member, including the two the old wrapper never listed"; "survives destructuring — nothing is re-bound"; and "… is the core export itself" for `writeEnabled`, `autoDiscovery`, `setWriteGrant` the seven server-message exports and `SnapshotError` |
+| M1: `src/index.ts` replaced by the wrapper class that listed core methods one by one | BIND-6 | 13 of 24 in `surface.test.ts`: "is the core singleton itself"; "reaches every public core member, including the two the old wrapper never listed"; "survives destructuring — nothing is re-bound"; and "… is the core export itself" for `writeEnabled`, `autoDiscovery`, `setWriteGrant` the seven server-message exports and `SnapshotError` |
 | M2: `useWriteEnabled` returns `useSignal(writeEnabled) ?? false` | BIND-2 | "returns undefined, false and true exactly as the core holds them" |
 | M3: `useT` memoizes the function with `useMemo(() => t, [])` | BIND-1, BIND-5 | "useT returns the core's translation function itself, and follows it across a catalog change"; probe "BIND-5: no caching or memoizing lookups > absent from this binding". The BIND-5 render test stays green here, correctly: the core's function reads fresh state on every call, so memoizing the *function* loses no lookup; memoizing the *result* does, and the render test's firing control shows it catches that |
 | M4: `discovery?: boolean` added to `iLangsysInitConfig` | BIND-4 | `tsc` TS2322 at the compile-time assertion; "declares exactly one member, and it narrows a key the core already has" |
@@ -190,7 +193,7 @@ mutation asserts that its edit applied exactly once before running, and the work
 | M9: a function returning `entry.template` appended to `hooks.ts` | MSG | probe "MSG-1..6: no server-message resolution or rendering > absent from this binding" |
 | M10: a `vi.fn()` call assertion added to `hooks.test.ts` | CONF-1 | "no test asserts on spies, mock calls or outgoing requests" |
 | M11: `useServerMessage` no longer calls `useT()` | MSG-5 | "follows the catalog: the entry's message, then the translation once it arrives" |
-| M12: `useServerMessage` returns `entry.message` itself | MSG-5 | five render vectors ("translation-present", "translation-present-no-params", "icu-plural-translation-count-one", "icu-plural-translation-count-many", "code-does-not-choose-text"); "follows the catalog …"; probe "MSG-1..6: no server-message resolution or rendering > absent from this binding" |
+| M12: `useServerMessage` returns `entry.message` itself | MSG-1, MSG-5 | six render vectors ("laravel-translation-with-param", "laravel-translation-no-params", "pydantic-translation", "icu-plural-translation-count-one", "icu-plural-translation-count-many", "code-does-not-choose-text"); "the same entries render identically beside two frameworks' native bodies"; "follows the catalog …"; probe "MSG-1..6: no server-message resolution or rendering > absent from this binding" |
 | M13: `LangsysApp` replaced by an object whose `init` drops `legacyKeys` before calling the core | MIG passthrough | "a key renders the translation of its source value, through useT()"; "a new key registers its value under the key's namespace, never the key"; "is the core singleton itself" |
 | M14: `LangsysApp` replaced by an object whose `loadSnapshot` returns `false` | SNAP-2, SNAP-3 | "renders through useT() as soon as it loads, before init, with nothing awaited"; "throws the core's SnapshotError with reason checksum, and the catalog is untouched"; "is the core singleton itself"; "reaches every public core member …" |
 | M15: a function that `JSON.parse`s a bundle and reads its catalog appended to `hooks.ts` | SNAP | probe "SNAP-2..3: no snapshot parsing, verification or loading > absent from this binding" |
@@ -234,16 +237,16 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
 
 ```bash
 # the spec text this file was checked against
-git -C ~/Documents/dev/langsys2 ls-tree f5568b88 docs/sdk-spec.mdx     # blob b9fd4b5b…
+git -C ~/Documents/dev/langsys2 ls-tree a95af2c2 docs/sdk-spec.mdx     # blob 5d7e6890…
 
 # a clean build of the core under test, linked in place of the sibling working copy
-git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core a639ae8c
+git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 239166a6
 (cd /tmp/core && npm ci && npm run build)
 ln -sfn /tmp/core node_modules/langsys-js-typescript
 
 # the vendored fixture is byte-exact
 git add contract-fixture && git write-tree --prefix=contract-fixture/   # 542f57f5…
-git hash-object vectors/server-message-vectors.json                      # c8125549…
+git hash-object vectors/server-message-vectors.json                      # 7333e391…
 
 # suite, types, lint, build
 npm run typecheck && npm test && npm run lint && npm run build
