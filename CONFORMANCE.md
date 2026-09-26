@@ -7,39 +7,36 @@
 | **specVersion** | 8.2.19. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx`, and the 114 rule ids below are enumerated from it |
 | **SDK** | `langsys-js-react-native` 0.1.0 — React Native binding, hooks-first, experimental |
 | **SDK revision** | `feature/838_write_key_gating` |
-| **Core consumed** | `langsys-js-typescript` `fbbb6a93` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `fd65a04f722e6f0d63cdae59e82f1f03d3f31e79` at that commit, graded against 8.2.18 (blob `5d7e6890`) — see What surfaced |
-| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `fbbb6a93`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
+| **Core consumed** | `langsys-js-typescript` `419da997` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `c27727e6949e843cc3702b73f8451b203fa29a90` at that commit, graded against the same spec blob as this file |
+| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `419da997`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
 | **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `7333e3919dac43af81c6c20bfdba974efd79725b`, which the suite recomputes and pins |
 | **Suite** | 118 tests in 9 files, `npm test`, all passing. Counted from vitest's report at this tip |
 | **Tally** | implemented 11 · delegated 59 · n/a (architecture) 34 · n/a (profile: server) 10 — 114 rows, each id graded once |
 
 **What surfaced while writing this.**
 
-1. **One delegated row resolves to a core row that is not green: REG-10**, `partial` in the core
-   and waiting on an API decision there. This binding authors no registration behaviour (the REG
-   probe reads 0 hits), so it turns green here when the core's row does.
-2. **The core's file is graded against 8.2.18, this one against 8.2.19.** Between the two blobs
-   only REG-10, SSR-3 and SRV-6 changed text, and SRV-7 is new. Of these, only REG-10 is a delegated
-   row here, and its core row is `partial` on either text; SSR-3, SRV-6 and SRV-7 are
-   `n/a (architecture: no server render)`. Every other delegated row resolves against a core row
-   graded on identical rule text.
-3. **Server messages resolve through configuration and render through one decision, the core's.**
+1. **Every delegated row resolves to an implemented core row, graded on the same spec blob.** No
+   row in this file is partial, unbuilt or held, and none depends on one in the core. The core's
+   own non-green rows, SRV-7 and CONF-3, are rows this file grades for itself: SRV-7 is
+   `n/a (architecture: no server render)` here, and CONF-3 is implemented here with its own
+   mutation evidence.
+2. **Server messages resolve through configuration and render through one decision, the core's.**
    `resolveServerMessages` reads entries only at the key the app names (or through its resolver),
    and all ten shared resolve vectors, drawn from Laravel, FastAPI, DRF and Rails error bodies,
    come out as expected with the body unchanged. `useServerMessage` subscribes the component and
    returns the core's `renderServerMessage`, so all twelve render vectors come out identical
    through the hook and through the core. The one thing the hook adds is staying current: a render
    that does not subscribe keeps a stale message after the catalog arrives.
-4. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
+3. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
    legacy-key mode is a source-language JSON file shipped with the app and passed as `legacyKeys`.
    Against the contract fixture, a key renders the translation of its source value through
    `useT()`, and a new key registers its value under the key's namespace, never the key.
-5. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
+4. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
    is the core method by reference, and `SnapshotError` the core's class. A snapshot shipped with
    the app renders through `useT()` the moment it loads, before `init()` and with nothing awaited;
    an edited one is refused as `checksum`; and once `init()` runs against the contract fixture, a
    phrase the snapshot lacks renders the catalog's translation.
-6. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
+5. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
    `setPersistStorage` and `writeEnabled` each appear in 0 `dist` files of the published tarball;
    the control `canonicalizeLocale` appears in 6. Against it, a fresh clone fails `tsc` (Gap 1).
 
@@ -86,7 +83,7 @@ keeps a rendered server message current.
 | REG-7 | delegated | - | core row REG-7: implemented, n/a (pure) · probe *REG-1..13* → 0 hits · firing control hits |
 | REG-8 | delegated | - | core row REG-8: implemented, contract · probe *REG-1..13* → 0 hits · firing control hits. The REG-3 contract test also observes backoff holding a refused send |
 | REG-9 | delegated | - | core row REG-9: implemented, contract · probe *REG-1..13* → 0 hits · firing control hits |
-| REG-10 | delegated | - | core row REG-10: partial · probe *REG-1..13* → 0 hits · firing control hits. Resolves with the core row |
+| REG-10 | delegated | - | core row REG-10: implemented, contract · probe *REG-1..13* → 0 hits · firing control hits. Every registration outcome is the core's: a skip reports `{ status: false, skipped: true, reason }`, never success, and nothing here wraps or reinterprets it |
 | REG-11 | delegated | - | core row REG-11: implemented, n/a (pure) · probe *REG-1..13* → 0 hits · firing control hits |
 | REG-12 | delegated | - | core row REG-12: implemented, n/a (pure) · probe *REG-1..13* → 0 hits, and probe *CAT-1..3* → 0 hits · firing controls hit |
 | REG-13 | delegated | - | core row REG-13: implemented, n/a (pure) · probe *REG-1..13* → 0 hits · firing control hits |
@@ -103,7 +100,7 @@ keeps a rendered server message current.
 | HINT-11 | n/a (architecture: no DOM — spec Profiles carve-out) | - | As HINT-1 |
 | HINT-12 | n/a (architecture: no DOM — spec Profiles carve-out) | - | As HINT-1 |
 | HINT-13 | n/a (architecture: no DOM — spec Profiles carve-out) | - | A navigation re-entry records misses at the current URL, and React Native has none, so wiring React Navigation to `notifyNavigation()` would record nothing reportable. No router hook is wired and none is documented. Live under the same condition as HINT-1 |
-| ICU-1 | delegated | - | core row ICU-1: implemented, n/a (pure) · probe *ICU-1..6: no interpolation or ICU recovery* → 0 hits · firing control hits on `new IntlMessageFormat(template, locale)`. Core evidence runs on Node's ICU, not Hermes (Gap 3) |
+| ICU-1 | delegated | - | core row ICU-1: implemented, n/a (pure) · probe *ICU-1..6: no interpolation or ICU recovery* → 0 hits · firing control hits on `new IntlMessageFormat(template, locale)`. Core evidence runs on Node's ICU, not Hermes (Gap 2) |
 | ICU-2 | delegated | - | core row ICU-2: implemented, n/a (pure) · probe *ICU-1..6* → 0 hits · firing control hits |
 | ICU-3 | delegated | - | core row ICU-3: implemented, n/a (pure) · probe *ICU-1..6* → 0 hits · firing control hits |
 | ICU-4 | delegated | - | core row ICU-4: implemented, n/a (pure) · probe *ICU-1..6* → 0 hits, and probe *OBS-1* → 0 hits: no diagnostic is emitted or swallowed here · firing controls hit |
@@ -226,16 +223,14 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
    published 0.6.5, against which a fresh clone fails `tsc` (TS2305 ×22) and the upstream
    precondition test. It blocks installability, not behaviour, and belongs to the release wave:
    the range must name the core version that ships this surface.
-2. **One delegated row waits on the core: REG-10**, partial there pending an API decision. It is the
-   last row between this file and green.
-3. **ICU on Hermes is not exercised.** The delegated ICU rows rest on core evidence produced under
+2. **ICU on Hermes is not exercised.** The delegated ICU rows rest on core evidence produced under
    Node's full ICU. Hermes's `Intl` coverage varies by React Native version and build flags, and
    nothing here runs on Hermes.
-4. **The departure send is dispatched, not guaranteed.** React Native's `fetch` has no
+3. **The departure send is dispatched, not guaranteed.** React Native's `fetch` has no
    `keepalive`, so whether the last request completes depends on how long the OS lets the app run
    after it leaves the foreground. The contract test proves the send is made at departure, under
    Node; delivery on a device is not exercised.
-5. **No discovery reporting from apps.** A read-only key on React Native registers nothing and
+4. **No discovery reporting from apps.** A read-only key on React Native registers nothing and
    reports nothing (the HINT carve-out). A product limit rather than a conformance defect, and the
    README documents it.
 
@@ -246,7 +241,7 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
 git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx     # blob 5f01ef7d…
 
 # a clean build of the core under test, linked in place of the sibling working copy
-git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core fbbb6a93
+git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 419da997
 (cd /tmp/core && npm ci && npm run build)
 ln -sfn /tmp/core node_modules/langsys-js-typescript
 
