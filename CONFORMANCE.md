@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Spec revision read** | langsys2 aac52142…, docs/sdk-spec.mdx blob 5f01ef7d761c35157e553ed0ea83b9a4539511c3 |
+| **Spec revision read** | langsys2 7c903556…, docs/sdk-spec.mdx blob 8539bee8aedd100afd64414b573363316e7bda54 |
 | **Profiles** | browser, binding, all — derived: binding over langsys-js-typescript |
-| **specVersion** | 8.2.19. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx`, and the 114 rule ids below are enumerated from it |
+| **specVersion** | 8.2.21. The blob is re-derived at this write with `git -C ~/Documents/dev/langsys2 ls-tree 7c903556 docs/sdk-spec.mdx`, and the 114 rule ids below are enumerated from it |
 | **SDK** | `langsys-js-react-native` 0.1.0 — React Native binding, hooks-first, experimental |
 | **SDK revision** | `feature/838_write_key_gating` |
-| **Core consumed** | `langsys-js-typescript` `419da997` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `c27727e6949e843cc3702b73f8451b203fa29a90` at that commit, graded against the same spec blob as this file |
-| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `419da997`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
+| **Core consumed** | `langsys-js-typescript` `34a027f5` (`feature/838_write_key_gating_reland`, pushed), built clean in a separate worktree (`npm ci && npm run build`, no local changes) and resolved through the gitignored `node_modules` symlink. Core rows cited below come from its `CONFORMANCE.md`, blob `1a45e269933e595469a74b7aba8cce6a147c56e7` at that commit, graded against the same spec blob as this file |
+| **Contract fixture** | `contract-fixture/`, vendored byte-exact from the core (unchanged through `34a027f5`): tree `542f57f5ffcb9038db1b7411152b7e31b96cb269` (`git write-tree --prefix=contract-fixture/` on the staged copy). Run with `node contract-fixture/server.mjs`, Node 18 or later |
 | **Shared vectors** | `vectors/server-message-vectors.json`, vendored byte-exact from the core's `tests/fixtures/`: blob `7333e3919dac43af81c6c20bfdba974efd79725b`, which the suite recomputes and pins |
 | **Suite** | 118 tests in 9 files, `npm test`, all passing. Counted from vitest's report at this tip |
 | **Tally** | implemented 11 · delegated 59 · n/a (architecture) 34 · n/a (profile: server) 10 — 114 rows, each id graded once |
@@ -16,27 +16,30 @@
 **What surfaced while writing this.**
 
 1. **Every delegated row resolves to an implemented core row, graded on the same spec blob.** No
-   row in this file is partial, unbuilt or held, and none depends on one in the core. The core's
-   own non-green rows, SRV-7 and CONF-3, are rows this file grades for itself: SRV-7 is
-   `n/a (architecture: no server render)` here, and CONF-3 is implemented here with its own
-   mutation evidence.
-2. **Server messages resolve through configuration and render through one decision, the core's.**
+   row in this file is partial, unbuilt or held, and the core has no row that is not green.
+2. **The core offers a content-block path that needs no DOM, and this binding does not expose it.**
+   `registerBlock`, `renderBlock`, `tokenizeTree` and their kin register and render content blocks
+   from a tree of nodes rather than from document elements. That is the path a React Native
+   `<Translate>` would use. Nothing here re-exports or calls it, so no block is registered or
+   rendered here and the TOK, MARK and CID rows stand as graded. Exposing it would make those
+   families reachable on React Native and move their rows out of the no-DOM carve-out.
+3. **Server messages resolve through configuration and render through one decision, the core's.**
    `resolveServerMessages` reads entries only at the key the app names (or through its resolver),
    and all ten shared resolve vectors, drawn from Laravel, FastAPI, DRF and Rails error bodies,
    come out as expected with the body unchanged. `useServerMessage` subscribes the component and
    returns the core's `renderServerMessage`, so all twelve render vectors come out identical
    through the hook and through the core. The one thing the hook adds is staying current: a render
    that does not subscribe keeps a stale message after the catalog arrives.
-3. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
+4. **A bundled key file reaches the core through `init` untouched.** The React Native shape of the
    legacy-key mode is a source-language JSON file shipped with the app and passed as `legacyKeys`.
    Against the contract fixture, a key renders the translation of its source value through
    `useT()`, and a new key registers its value under the key's namespace, never the key.
-4. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
+5. **A bundled snapshot is the first render's catalog, and stays a cache.** `LangsysApp.loadSnapshot`
    is the core method by reference, and `SnapshotError` the core's class. A snapshot shipped with
    the app renders through `useT()` the moment it loads, before `init()` and with nothing awaited;
    an edited one is refused as `checksum`; and once `init()` runs against the contract fixture, a
    phrase the snapshot lacks renders the catalog's translation.
-5. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
+6. **npm's `latest` is still 0.6.5, which carries none of the 838 surface.** `setTeardownSignal`,
    `setPersistStorage` and `writeEnabled` each appear in 0 `dist` files of the published tarball;
    the control `canonicalizeLocale` appears in 6. Against it, a fresh clone fails `tsc` (Gap 1).
 
@@ -238,10 +241,10 @@ The absence probes live in `src/conformance-probes.test.ts` and run in the suite
 
 ```bash
 # the spec text this file was checked against
-git -C ~/Documents/dev/langsys2 ls-tree aac52142 docs/sdk-spec.mdx     # blob 5f01ef7d…
+git -C ~/Documents/dev/langsys2 ls-tree 7c903556 docs/sdk-spec.mdx     # blob 8539bee8…
 
 # a clean build of the core under test, linked in place of the sibling working copy
-git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 419da997
+git -C ~/Documents/dev/langsys-js-typescript worktree add --detach /tmp/core 34a027f5
 (cd /tmp/core && npm ci && npm run build)
 ln -sfn /tmp/core node_modules/langsys-js-typescript
 
